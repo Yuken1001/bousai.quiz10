@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>防災クイズ速報</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#0c1226;
+    --bg-panel:#141b34;
+    --bg-panel-2:#1b2444;
+    --alert-orange:#ff7a29;
+    --alert-orange-dim:#c85f1f;
+    --hazard-yellow:#ffc94d;
+    --safe-green:#3ddc97;
+    --danger-red:#ff4d5e;
+    --text-main:#f2f3f8;
+    --text-sub:#9aa3c7;
+    --line:rgba(255,255,255,0.12);
+    --font-display:'Zen Kaku Gothic New', sans-serif;
+    --font-body:'Noto Sans JP', sans-serif;
+    --font-digit:'DotGothic16', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,122,41,0.10), transparent 45%),
+      radial-gradient(circle at 85% 90%, rgba(61,220,151,0.08), transparent 45%),
+      var(--bg-deep);
+    font-family:var(--font-body);
+    color:var(--text-main);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 14px;
+    overflow-x:hidden;
+  }
+  .app{
+    width:100%;
+    max-width:480px;
+    position:relative;
+  }
+
+  /* hazard stripe bar - signature element */
+  .hazard-bar{
+    height:10px;
+    width:100%;
+    border-radius:6px;
+    background:repeating-linear-gradient(
+      -45deg,
+      var(--hazard-yellow) 0px, var(--hazard-yellow) 14px,
+      #14172a 14px, #14172a 28px
+    );
+    margin-bottom:14px;
+    box-shadow:0 0 14px rgba(255,201,77,0.25);
+  }
+
+  .broadcast-tag{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:var(--font-digit);
+    color:var(--alert-orange);
+    font-size:13px;
+    letter-spacing:2px;
+    margin-bottom:6px;
+  }
+  .dot-blink{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--danger-red);
+    animation:blink 1s infinite;
+    box-shadow:0 0 8px var(--danger-red);
+  }
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.25;}}
+
+  h1.title{
+    font-family:var(--font-display);
+    font-weight:900;
+    font-size:26px;
+    margin:0 0 4px 0;
+    letter-spacing:1px;
+  }
+  .subtitle{
+    color:var(--text-sub);
+    font-size:13px;
+    margin-bottom:18px;
+  }
+
+  .panel{
+    background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:22px;
+    position:relative;
+    box-shadow:0 20px 40px rgba(0,0,0,0.35);
+  }
+
+  /* ---------- START SCREEN ---------- */
+  .start-screen p{
+    color:var(--text-sub);
+    line-height:1.8;
+    font-size:14px;
+  }
+  .rule-list{
+    list-style:none;
+    padding:0;
+    margin:16px 0 22px 0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .rule-list li{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    font-size:13.5px;
+    color:var(--text-main);
+  }
+  .rule-icon{
+    font-family:var(--font-digit);
+    color:var(--bg-deep);
+    background:var(--hazard-yellow);
+    min-width:22px;height:22px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;
+    flex-shrink:0;
+    margin-top:1px;
+  }
+
+  button.primary-btn{
+    width:100%;
+    padding:16px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(180deg, var(--alert-orange), var(--alert-orange-dim));
+    color:#1a0f04;
+    font-family:var(--font-display);
+    font-weight:900;
+    font-size:16px;
+    letter-spacing:1px;
+    cursor:pointer;
+    box-shadow:0 8px 0 #8f4514, 0 12px 20px rgba(255,122,41,0.25);
+    transition:transform .08s ease;
+  }
+  button.primary-btn:active{
+    transform:translateY(6px);
+    box-shadow:0 2px 0 #8f4514;
+  }
+
+  /* ---------- QUIZ SCREEN ---------- */
+  .top-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  .q-counter{
+    font-family:var(--font-digit);
+    font-size:15px;
+    color:var(--text-sub);
+  }
+  .q-counter b{color:var(--hazard-yellow); font-size:18px;}
+
+  .score-badge{
+    font-family:var(--font-digit);
+    font-size:15px;
+    color:var(--safe-green);
+    background:rgba(61,220,151,0.08);
+    border:1px solid rgba(61,220,151,0.35);
+    padding:4px 10px;
+    border-radius:8px;
+  }
+
+  /* alert level meter - signature element */
+  .meter-wrap{
+    display:flex;
+    gap:4px;
+    margin-bottom:16px;
+  }
+  .meter-seg{
+    flex:1;
+    height:8px;
+    border-radius:4px;
+    background:rgba(255,255,255,0.08);
+    overflow:hidden;
+  }
+  .meter-seg.filled{
+    background:linear-gradient(90deg, var(--safe-green), var(--hazard-yellow));
+  }
+  .meter-seg.missed{
+    background:rgba(255,77,94,0.35);
+  }
+
+  .timer-bar-track{
+    width:100%;
+    height:10px;
+    border-radius:6px;
+    background:rgba(255,255,255,0.08);
+    overflow:hidden;
+    margin-bottom:18px;
+    border:1px solid var(--line);
+  }
+  .timer-bar-fill{
+    height:100%;
+    width:100%;
+    background:linear-gradient(90deg, var(--safe-green), var(--hazard-yellow), var(--danger-red));
+    transition:width 0.1s linear;
+  }
+
+  .question-text{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:18px;
+    line-height:1.6;
+    margin-bottom:20px;
+    min-height:80px;
+  }
+
+  .choice-btn{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+    text-align:left;
+    padding:14px 14px;
+    margin-bottom:10px;
+    border-radius:12px;
+    border:1.5px solid var(--line);
+    background:rgba(255,255,255,0.03);
+    color:var(--text-main);
+    font-family:var(--font-body);
+    font-size:14.5px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .choice-btn:hover:not(:disabled){
+    border-color:var(--alert-orange);
+    background:rgba(255,122,41,0.08);
+  }
+  .choice-label{
+    font-family:var(--font-digit);
+    width:26px;height:26px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.08);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    font-size:13px;
+  }
+  .choice-btn.correct{
+    border-color:var(--safe-green);
+    background:rgba(61,220,151,0.18);
+    animation:correctPulse .5s ease;
+  }
+  .choice-btn.wrong{
+    border-color:var(--danger-red);
+    background:rgba(255,77,94,0.18);
+    animation:shake .4s ease;
+  }
+  .choice-btn:disabled{cursor:default;}
+  @keyframes correctPulse{
+    0%{transform:scale(1);}
+    40%{transform:scale(1.04);}
+    100%{transform:scale(1);}
+  }
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    25%{transform:translateX(-6px);}
+    75%{transform:translateX(6px);}
+  }
+
+  /* feedback flash overlay */
+  .flash-overlay{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    opacity:0;
+    z-index:40;
+  }
+  .flash-overlay.correct{background:radial-gradient(circle, rgba(61,220,151,0.55), transparent 70%);}
+  .flash-overlay.wrong{background:radial-gradient(circle, rgba(255,77,94,0.45), transparent 70%);}
+  .flash-overlay.play{animation:flashFade .55s ease forwards;}
+  @keyframes flashFade{
+    0%{opacity:1;}
+    100%{opacity:0;}
+  }
+
+  /* result popup for each question */
+  .result-pop{
+    position:fixed;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%) scale(0.4);
+    z-index:50;
+    text-align:center;
+    opacity:0;
+    pointer-events:none;
+  }
+  .result-pop.show{
+    animation:popIn 0.9s cubic-bezier(.2,1.6,.4,1) forwards;
+  }
+  @keyframes popIn{
+    0%{opacity:0; transform:translate(-50%,-50%) scale(0.3) rotate(-8deg);}
+    18%{opacity:1; transform:translate(-50%,-50%) scale(1.25) rotate(3deg);}
+    32%{transform:translate(-50%,-50%) scale(0.96) rotate(-1deg);}
+    45%{transform:translate(-50%,-50%) scale(1.05);}
+    70%{opacity:1; transform:translate(-50%,-50%) scale(1);}
+    100%{opacity:0; transform:translate(-50%,-50%) scale(1) translateY(-20px);}
+  }
+  .result-pop .big-text{
+    font-family:var(--font-display);
+    font-weight:900;
+    font-size:46px;
+    text-shadow:0 4px 20px rgba(0,0,0,0.5);
+  }
+  .result-pop.correct .big-text{
+    color:var(--hazard-yellow);
+    -webkit-text-stroke:2px var(--alert-orange);
+  }
+  .result-pop.wrong .big-text{
+    color:var(--danger-red);
+  }
+  .result-pop .pts{
+    font-family:var(--font-digit);
+    font-size:20px;
+    color:var(--text-main);
+    margin-top:6px;
+    background:rgba(12,18,38,0.85);
+    display:inline-block;
+    padding:4px 14px;
+    border-radius:20px;
+    border:1px solid var(--line);
+  }
+
+  /* confetti */
+  .confetti-piece{
+    position:fixed;
+    top:-20px;
+    z-index:45;
+    pointer-events:none;
+    border-radius:2px;
+    animation-name:confettiFall;
+    animation-timing-function:cubic-bezier(.4,.6,.6,1);
+    animation-fill-mode:forwards;
+  }
+  @keyframes confettiFall{
+    0%{transform:translateY(0) rotate(0deg); opacity:1;}
+    100%{transform:translateY(110vh) rotate(600deg); opacity:0;}
+  }
+
+  /* center-burst confetti (from the correct answer moment) */
+  .burst-piece{
+    position:fixed;
+    z-index:46;
+    pointer-events:none;
+    border-radius:2px;
+    top:50%; left:50%;
+    animation-name:burstFly;
+    animation-timing-function:cubic-bezier(.15,.7,.3,1);
+    animation-fill-mode:forwards;
+  }
+  @keyframes burstFly{
+    0%{transform:translate(-50%,-50%) translate(0,0) scale(1) rotate(0deg); opacity:1;}
+    100%{transform:translate(-50%,-50%) translate(var(--bx), var(--by)) scale(0.4) rotate(var(--br)); opacity:0;}
+  }
+
+  /* rotating light rays behind the correct popup */
+  .ray-burst{
+    position:fixed;
+    top:50%; left:50%;
+    width:520px; height:520px;
+    transform:translate(-50%,-50%) scale(0);
+    z-index:44;
+    pointer-events:none;
+    border-radius:50%;
+    background:repeating-conic-gradient(
+      from 0deg,
+      rgba(255,201,77,0.55) 0deg 8deg,
+      rgba(255,201,77,0) 8deg 24deg
+    );
+    opacity:0;
+  }
+  .ray-burst.play{
+    animation:rayPop 0.7s ease-out forwards;
+  }
+  @keyframes rayPop{
+    0%{opacity:0; transform:translate(-50%,-50%) scale(0.2) rotate(0deg);}
+    30%{opacity:0.9;}
+    100%{opacity:0; transform:translate(-50%,-50%) scale(1.15) rotate(60deg);}
+  }
+
+  /* whole-app screen punch/shake on correct */
+  @keyframes screenPunch{
+    0%{transform:scale(1);}
+    30%{transform:scale(1.035);}
+    50%{transform:scale(0.985) translateX(-4px);}
+    65%{transform:scale(1.01) translateX(3px);}
+    100%{transform:scale(1) translateX(0);}
+  }
+  .app.punch{
+    animation:screenPunch 0.45s ease;
+  }
+
+  /* combo badge */
+  .combo-pop{
+    position:fixed;
+    top:calc(50% + 62px);
+    left:50%;
+    transform:translate(-50%,0) scale(0.5);
+    z-index:50;
+    opacity:0;
+    pointer-events:none;
+    font-family:var(--font-digit);
+    font-size:20px;
+    letter-spacing:1px;
+    color:var(--hazard-yellow);
+    text-shadow:0 2px 10px rgba(0,0,0,0.6);
+  }
+  .combo-pop.show{
+    animation:comboPop 0.9s ease forwards;
+  }
+  @keyframes comboPop{
+    0%{opacity:0; transform:translate(-50%,10px) scale(0.5);}
+    25%{opacity:1; transform:translate(-50%,0) scale(1.15);}
+    40%{transform:translate(-50%,0) scale(1);}
+    75%{opacity:1;}
+    100%{opacity:0; transform:translate(-50%,-14px) scale(1);}
+  }
+
+  /* score counting glow when it updates */
+  @keyframes scoreGlow{
+    0%{color:var(--hazard-yellow); text-shadow:0 0 12px rgba(255,201,77,0.9); transform:scale(1.25);}
+    100%{color:var(--safe-green); text-shadow:none; transform:scale(1);}
+  }
+  .score-badge #liveScore.glow{
+    display:inline-block;
+    animation:scoreGlow 0.6s ease forwards;
+  }
+
+  .explain-box{
+    margin-top:4px;
+    padding:12px 14px;
+    border-radius:10px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--line);
+    font-size:12.5px;
+    color:var(--text-sub);
+    line-height:1.7;
+    display:none;
+  }
+  .explain-box.show{display:block;}
+
+  .next-btn{
+    margin-top:14px;
+    width:100%;
+    padding:13px;
+    border:none;
+    border-radius:10px;
+    background:var(--bg-panel-2);
+    border:1.5px solid var(--alert-orange);
+    color:var(--alert-orange);
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    display:none;
+  }
+  .next-btn.show{display:block;}
+
+  /* ---------- RESULT SCREEN ---------- */
+  .result-screen{text-align:center;}
+  .rank-badge{
+    font-family:var(--font-display);
+    font-weight:900;
+    font-size:64px;
+    margin:6px 0 0 0;
+    background:linear-gradient(180deg, var(--hazard-yellow), var(--alert-orange));
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+  }
+  .rank-caption{
+    color:var(--text-sub);
+    font-size:13px;
+    margin-bottom:18px;
+  }
+  .total-score{
+    font-family:var(--font-digit);
+    font-size:38px;
+    color:var(--text-main);
+    margin-bottom:2px;
+  }
+  .total-score span{color:var(--text-sub); font-size:16px;}
+  .score-breakdown{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    margin:18px 0;
+  }
+  .breakdown-cell{
+    flex:1;
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 6px;
+  }
+  .breakdown-cell .n{
+    font-family:var(--font-digit);
+    font-size:20px;
+    color:var(--safe-green);
+  }
+  .breakdown-cell .l{
+    font-size:11px;
+    color:var(--text-sub);
+    margin-top:2px;
+  }
+  .review-list{
+    text-align:left;
+    margin-top:6px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    max-height:260px;
+    overflow-y:auto;
+    padding-right:4px;
+  }
+  .review-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:12.5px;
+    padding:8px 10px;
+    border-radius:8px;
+    background:rgba(255,255,255,0.03);
+  }
+  .review-item .mark{
+    font-family:var(--font-digit);
+    width:20px;height:20px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    font-size:12px;
+  }
+  .review-item .mark.ok{background:var(--safe-green); color:#052015;}
+  .review-item .mark.ng{background:var(--danger-red); color:#2a0509;}
+  .review-item .qtxt{color:var(--text-sub); flex:1;}
+  .review-item .pt{font-family:var(--font-digit); color:var(--hazard-yellow); flex-shrink:0;}
+
+  .retry-btn{
+    margin-top:20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="flash-overlay" id="flashOverlay"></div>
+<div class="ray-burst" id="rayBurst"></div>
+<div class="result-pop" id="resultPop">
+  <div class="big-text" id="resultPopText"></div>
+  <div class="pts" id="resultPopPts"></div>
+</div>
+<div class="combo-pop" id="comboPop"></div>
+
+<div class="app">
+  <div class="hazard-bar"></div>
+  <div class="broadcast-tag"><span class="dot-blink"></span>防災クイズ速報</div>
+
+  <!-- START SCREEN -->
+  <div id="startScreen">
+    <h1 class="title">防災サバイバル<br>クイズ10</h1>
+    <div class="subtitle">全50問の中からランダムで10問出題 / 早く正確に答えてスコアを稼げ</div>
+    <div class="panel start-screen">
+      <p>いざという時に命を守るための防災知識を試そう。答えが早いほどボーナス得点がアップする。</p>
+      <ul class="rule-list">
+        <li><span class="rule-icon">1</span>各問題は3択。制限時間は<b>10秒</b>。</li>
+        <li><span class="rule-icon">2</span>正解は基本<b>50点</b>+残り時間ボーナス(最大<b>50点</b>)。</li>
+        <li><span class="rule-icon">3</span>不正解・時間切れは0点。全10問で最大<b>1000点</b>。</li>
+      </ul>
+      <button class="primary-btn" onclick="startQuiz()">クイズを開始する</button>
+    </div>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quizScreen" style="display:none;">
+    <div class="panel">
+      <div class="top-row">
+        <div class="q-counter">問題 <b id="qNum">1</b> / 10</div>
+        <div class="score-badge">SCORE <span id="liveScore">0</span></div>
+      </div>
+      <div class="meter-wrap" id="meterWrap"></div>
+      <div class="timer-bar-track"><div class="timer-bar-fill" id="timerFill"></div></div>
+      <div class="question-text" id="questionText"></div>
+      <div id="choicesWrap"></div>
+      <div class="explain-box" id="explainBox"></div>
+      <button class="next-btn" id="nextBtn" onclick="nextQuestion()">次の問題へ ▶</button>
+    </div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div id="finalScreen" style="display:none;">
+    <div class="panel result-screen">
+      <div class="subtitle" style="margin-bottom:0;">RESULT</div>
+      <div class="rank-badge" id="rankBadge">S</div>
+      <div class="rank-caption" id="rankCaption">防災マスター認定！</div>
+      <div class="total-score" id="totalScoreText">0<span> / 1000点</span></div>
+      <div class="score-breakdown">
+        <div class="breakdown-cell"><div class="n" id="correctCount">0</div><div class="l">正解数</div></div>
+        <div class="breakdown-cell"><div class="n" id="speedBonusTotal">0</div><div class="l">速さボーナス計</div></div>
+        <div class="breakdown-cell"><div class="n" id="avgTime">0.0s</div><div class="l">平均回答時間</div></div>
+      </div>
+      <div class="review-list" id="reviewList"></div>
+      <button class="primary-btn retry-btn" onclick="location.reload()">もう一度挑戦する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TIME_LIMIT = 10; // 秒
+const BASE_POINTS = 50;
+const MAX_BONUS = 50;
+
+const allQuestions = [
+  {
+    q: "地震が起きた直後、家の中でまず取るべき行動はどれ？",
+    choices: ["急いで外に飛び出す", "机の下などに隠れ頭部を守る", "エレベーターで避難する"],
+    correct: 1,
+    explain: "揺れている最中に外に飛び出すと看板やガラスの落下で危険。まずは丈夫な机の下などで頭を守ろう。"
+  },
+  {
+    q: "津波警報が出たとき、最優先すべき行動は？",
+    choices: ["高い場所へすぐ避難する", "海の様子を見に行く", "荷物をまとめてから避難する"],
+    correct: 0,
+    explain: "津波は想像以上の速さで到達する。様子見や荷造りをせず、直ちに高台へ避難することが最優先。"
+  },
+  {
+    q: "災害時の飲料水の備蓄目安として推奨されているのは、1人あたり何日分？",
+    choices: ["1日分", "3日分以上（できれば1週間）", "1ヶ月分"],
+    correct: 1,
+    explain: "大規模災害では物流が止まるため、最低3日分、できれば1週間分の備蓄が推奨されている。"
+  },
+  {
+    q: "台風接近時、窓ガラスの飛散対策として適切なのは？",
+    choices: ["養生テープや雨戸で補強する", "窓を全開にしておく", "カーテンを開けておく"],
+    correct: 0,
+    explain: "窓を開けると内部の気圧変化で被害が拡大する恐れがある。雨戸を閉め、飛散防止の補強をするのが正しい。"
+  },
+  {
+    q: "火災が発生し煙が充満している廊下を避難するとき、正しい姿勢は？",
+    choices: ["立ったまま走って逃げる", "姿勢を低くしハンカチ等で口を覆う", "その場にしゃがんで動かない"],
+    correct: 1,
+    explain: "煙は上に溜まりやすいため、姿勢を低くし、口と鼻を覆って有毒ガスの吸引を防ぎながら避難する。"
+  },
+  {
+    q: "避難所への持ち出し袋に入れるべきでないものは？",
+    choices: ["常備薬とお薬手帳", "モバイルバッテリー", "冷蔵庫に入っていた生鮮食品"],
+    correct: 2,
+    explain: "停電時に保冷できない生鮮食品はすぐ傷むため非常持ち出し袋には不向き。長期保存食が適している。"
+  },
+  {
+    q: "家族と災害時の安否確認をする方法として広く知られているのは？",
+    choices: ["災害用伝言ダイヤル(171)", "普段通りの電話を何度もかけ続ける", "SNSに個人情報を詳しく投稿する"],
+    correct: 0,
+    explain: "災害用伝言ダイヤル「171」は災害時に開設され、電話が混雑していても伝言を残しやすい仕組みになっている。"
+  },
+  {
+    q: "土砂災害警戒情報が出された地域で特に注意すべき前兆現象は？",
+    choices: ["いつもより空気が乾燥する", "斜面からの湧き水の濁りや異音", "気温が急に下がる"],
+    correct: 1,
+    explain: "斜面の湧き水が濁る、小石が落ちてくる、山鳴りがするなどは土砂災害の前兆とされ、早期避難が必要。"
+  },
+  {
+    q: "停電が発生したとき、ろうそくの使用について正しいのは？",
+    choices: ["ガス漏れの可能性がある場所では使わない", "揺れが続いていても構わず使う", "換気せずに密閉した部屋で使う"],
+    correct: 0,
+    explain: "ガス漏れが疑われる場所で火気を使うと引火の危険がある。停電時は懐中電灯やランタンの使用が望ましい。"
+  },
+  {
+    q: "避難生活が長引く際に注意すべき「災害関連死」の主な原因の一つは？",
+    choices: ["エコノミークラス症候群などの体調悪化", "避難所の食事がおいしすぎること", "情報が多すぎること"],
+    correct: 0,
+    explain: "同じ姿勢を長時間続けることによるエコノミークラス症候群など、避難生活の環境変化による体調悪化が災害関連死の一因となる。"
+  },
+  {
+    q: "大雨で川が増水しているとき、車での避難中にアンダーパス(冠水しやすい地下道)に差し掛かったら？",
+    choices: ["迂回して冠水しない道を選ぶ", "構わずそのまま通過する", "エンジンをかけたまま様子を見る"],
+    correct: 0,
+    explain: "アンダーパスは短時間で冠水し車が水没する危険があるため、必ず迂回する。"
+  },
+  {
+    q: "台風接近時、増水した用水路や田んぼの見回りについて正しい心構えは？",
+    choices: ["危険なので絶対に近づかない", "増水具合を確認するため見に行く", "子供に見に行かせる"],
+    correct: 0,
+    explain: "大雨の際に用水路等の見回りに行き命を落とす事故が毎年発生している。危険なので近づかないことが大原則。"
+  },
+  {
+    q: "エレベーターに乗っている最中に強い揺れを感じたら？",
+    choices: ["すべての階のボタンを押し、停止した階で降りる", "非常ボタンだけを押して何もせず待つ", "扉を無理にこじ開けて脱出する"],
+    correct: 0,
+    explain: "最寄り階に停止させて速やかに降りるのが基本。閉じ込められた場合は非常ボタンやインターホンで連絡する。"
+  },
+  {
+    q: "ブロック塀の近くを歩いているときに強い揺れを感じたら？",
+    choices: ["塀からすぐ離れる", "塀に寄りかかって様子を見る", "塀の上によじ登る"],
+    correct: 0,
+    explain: "ブロック塀は倒壊の危険が高いため、揺れを感じたら速やかに離れる。"
+  },
+  {
+    q: "「津波てんでんこ」という言葉が伝える教えは？",
+    choices: ["各自がばらばらでも構わず率先して高台へ逃げること", "家族全員が揃うまで避難を待つこと", "荷物をまとめてから逃げること"],
+    correct: 0,
+    explain: "「てんでんこ」は各自がてんでんばらばらに、迷わず一刻も早く高台へ避難せよという東北地方の教え。"
+  },
+  {
+    q: "天ぷら油から出火した際の消火方法として不適切なのは？",
+    choices: ["濡れタオルを鍋にかぶせて空気を遮断する", "水を勢いよくかける", "市販の油火災用消火具を使う"],
+    correct: 1,
+    explain: "油に直接水をかけると油が飛び散り爆発的に燃え広がる。水を使うのは厳禁。"
+  },
+  {
+    q: "ペットとの同行避難について正しい知識は？",
+    choices: ["避難所ごとの受け入れ体制やルールを事前に確認しておく", "必ずどこでも一緒の部屋に入れる", "ペットは置いていくのが原則"],
+    correct: 0,
+    explain: "自治体・避難所ごとにルールが異なるため、事前確認とケージ等の準備が重要。"
+  },
+  {
+    q: "自宅の家具の転倒防止対策として効果的なのは？",
+    choices: ["L字金具や突っ張り棒で固定する", "重い物をあえて高い場所に置く", "キャスター付きのまま固定しない"],
+    correct: 0,
+    explain: "L字金具などで壁や天井に固定することで転倒・落下を防げる。"
+  },
+  {
+    q: "避難所で熱中症を予防するために有効なのは？",
+    choices: ["こまめな水分・塩分補給と換気", "厚着をして汗をかく", "のどが渇いてから水を飲む"],
+    correct: 0,
+    explain: "喉が渇く前の定期的な水分・塩分補給と風通しの確保が予防に有効。"
+  },
+  {
+    q: "大雪警報が出た際、車での外出について正しいのは？",
+    choices: ["不要不急の外出は控える", "チェーンがあれば問題なく走行できる", "早朝なら道路が空いているので安全"],
+    correct: 0,
+    explain: "大雪時はスリップや立ち往生のリスクが高いため、不要不急の外出を控えるのが基本。"
+  },
+  {
+    q: "噴火警戒レベルが引き上げられた山で登山者が取るべき行動は？",
+    choices: ["最新の噴火警戒情報に従い規制区域に近づかない", "自己判断で山頂まで様子を見に行く", "噴煙と反対側なら安全なので登る"],
+    correct: 0,
+    explain: "噴石や火砕流は予測が難しく、警戒レベルに応じた規制情報に従うことが最優先。"
+  },
+  {
+    q: "自宅で火を使っている最中に強い揺れを感じたときの現在推奨されている行動は？",
+    choices: ["まず自分の身の安全を確保し、揺れが収まってから火を消す", "真っ先に火に飛びついて消す", "揺れていても構わずガスの元栓を閉めに行く"],
+    correct: 0,
+    explain: "揺れの最中に火に近づくとやけど等の危険があるため、現在は「まず身を守る」ことが優先とされている。"
+  },
+  {
+    q: "高潮警報が出ている沿岸部で特に注意すべきことは？",
+    choices: ["満潮時刻と重なると被害が拡大しやすいこと", "高潮は晴れた日には起きないこと", "高潮は数日前から急に水位が下がること"],
+    correct: 0,
+    explain: "台風接近と満潮が重なると海面が大きく上昇し、高潮被害が拡大しやすい。"
+  },
+  {
+    q: "非常持ち出し袋に入れる懐中電灯として適しているのは？",
+    choices: ["両手が使えるヘッドライト式", "両手がふさがる大型の据え置き型", "電池が切れても交換できない一体型"],
+    correct: 0,
+    explain: "避難中や作業中に両手を自由に使えるヘッドライト型が実用的とされる。"
+  },
+  {
+    q: "大きな揺れの後、家の中に戻る前に確認すべきことは？",
+    choices: ["建物の傾きやガス臭など安全確認をしてから入る", "余震を気にせずすぐ荷物を取りに戻る", "近所の人の家にも勝手に入って安全確認する"],
+    correct: 0,
+    explain: "建物の損傷やガス漏れの危険があるため、安全確認をしてから中に入る。"
+  },
+  {
+    q: "災害時にデマ・誤情報に惑わされないためにまず確認すべきは？",
+    choices: ["自治体や気象庁など公的機関の一次情報", "知人から回ってきたSNSの又聞き情報", "出所不明の動画やチェーンメール"],
+    correct: 0,
+    explain: "災害時はデマが拡散しやすいため、まず公的機関が発信する一次情報を確認する習慣が重要。"
+  },
+  {
+    q: "避難行動要支援者（高齢者・障がい者等）への支援で大切なのは？",
+    choices: ["日頃から地域で個別避難計画や声かけ体制を作っておく", "災害が起きてから支援方法を考える", "本人の希望を聞かず一律に対応する"],
+    correct: 0,
+    explain: "平時からの個別避難計画作成や地域の見守り体制が、いざという時の迅速な支援につながる。"
+  },
+  {
+    q: "密集市街地で火災が同時多発した場合に生じやすい危険な現象は？",
+    choices: ["火災旋風（炎の竜巻）の発生", "気温の低下による延焼の停止", "地面の液状化による自然消火"],
+    correct: 0,
+    explain: "大規模火災時には猛烈な上昇気流により火災旋風が発生し、被害を拡大させることがある。"
+  },
+  {
+    q: "大出血している人への応急処置としてまず行うべきは？",
+    choices: ["清潔な布などで傷口を強く圧迫して止血する", "消毒液を大量にかけ続ける", "出血部位を心臓より高くせず放置する"],
+    correct: 0,
+    explain: "直接圧迫止血が基本的な応急処置であり、まずは強く圧迫して出血を抑える。"
+  },
+  {
+    q: "「ローリングストック法」とはどのような備蓄方法か？",
+    choices: ["普段の食品を少し多めに買い置きし、使った分を補充しながら備蓄する方法", "非常食だけを買って賞味期限が切れるまで放置する方法", "水だけを大量に備蓄する方法"],
+    correct: 0,
+    explain: "日常の食品を消費しながら補充することで、常に新しい非常食を備蓄できる方法。"
+  },
+  {
+    q: "海沿いの地域で強い地震（長い揺れ）を感じた場合、津波警報を待たずにすべきことは？",
+    choices: ["直ちに高台や避難ビルへ避難を始める", "正式な警報が出るまで海岸で様子を見る", "揺れが収まったら海の様子を写真に撮る"],
+    correct: 0,
+    explain: "強い揺れや長い揺れを感じたら、警報を待たずにすぐ避難を開始することが命を守る行動。"
+  },
+  {
+    q: "停電に備えてモバイルバッテリーを準備する際のポイントは？",
+    choices: ["満充電の状態にしておき、複数回充電できる容量を選ぶ", "中身が空でも見た目が良ければよい", "乾電池式は災害時には役に立たない"],
+    correct: 0,
+    explain: "いざという時にすぐ使えるよう満充電にしておき、スマホを複数回充電できる大容量タイプが安心。"
+  },
+  {
+    q: "住宅用火災警報器の設置場所として推奨されているのは？",
+    choices: ["寝室や階段など", "トイレのみ", "ベランダのみ"],
+    correct: 0,
+    explain: "逃げ遅れを防ぐため、寝室や階段等への住宅用火災警報器の設置が推奨・義務化されている地域が多い。"
+  },
+  {
+    q: "家具や家電が転倒・落下しやすい「危険ゾーン」として特に注意すべき場所は？",
+    choices: ["就寝スペースの周り", "庭", "駐車場"],
+    correct: 0,
+    explain: "就寝中は避難行動が取りにくいため、寝室の家具配置や固定に特に注意が必要。"
+  },
+  {
+    q: "自治体が発表する「警戒レベル」で、危険な場所から全員避難すべきとされるのは何レベルか？",
+    choices: ["警戒レベル4", "警戒レベル1", "警戒レベル2"],
+    correct: 0,
+    explain: "警戒レベル4は「全員避難」に相当し、対象地域の人は速やかに避難する必要がある。"
+  },
+  {
+    q: "自動販売機やガラスのショーケースなど倒壊・破損しやすい物の近くにいるとき、揺れを感じたら？",
+    choices: ["すぐ離れる", "近くにいた方がむしろ安全", "寄りかかって支える"],
+    correct: 0,
+    explain: "転倒・落下・破損の危険があるため、揺れを感じたら速やかに離れる。"
+  },
+  {
+    q: "避難所での感染症対策として基本となるのは？",
+    choices: ["手洗い・換気・体調不良者の早期把握", "窓を閉め切って保温する", "咳が出ても特に対策しない"],
+    correct: 0,
+    explain: "集団生活では感染症が広がりやすいため、手洗い・換気・体調管理の徹底が重要。"
+  },
+  {
+    q: "住宅の耐震診断・耐震補強が重要とされる主な理由は？",
+    choices: ["建物の倒壊による被害を大幅に減らせるため", "家の見た目が良くなるため", "固定資産税が下がるため"],
+    correct: 0,
+    explain: "住宅の耐震化は地震による倒壊・圧死を防ぐ最も効果的な対策の一つとされる。"
+  },
+  {
+    q: "停電・断水に備えて浴槽に水を溜めておく主な目的は？",
+    choices: ["トイレを流すなど生活用水として使うため", "そのまま飲料水にするため", "洗濯にすぐ使うため"],
+    correct: 0,
+    explain: "断水時は飲料水と生活用水を分けて考え、浴槽の水はトイレを流す等の生活用水として活用できる。"
+  },
+  {
+    q: "緊急速報メール（エリアメール）が届いたときにまずすべきことは？",
+    choices: ["内容を確認しすぐに取るべき行動を判断する", "内容を確認せず削除する", "電波が悪くなるので機内モードにする"],
+    correct: 0,
+    explain: "緊急速報メールは命に関わる情報が多いため、届いたらすぐ内容を確認し行動に移す。"
+  },
+  {
+    q: "通勤・通学中に大きな地震が発生した場合、まず離れるべき場所は？",
+    choices: ["ビルの窓ガラスや看板の下", "広い公園の中央", "耐震性の高い建物の中"],
+    correct: 0,
+    explain: "落下物の危険がある窓ガラスや看板の下からは速やかに離れるべき。"
+  },
+  {
+    q: "被災後の心身のストレスに対して大切なこととされるのは？",
+    choices: ["無理をせず休息を取り、必要なら周囲や専門家に相談する", "つらくても弱音を吐かない", "一人で抱え込み誰にも話さない"],
+    correct: 0,
+    explain: "被災後の心のケアには十分な休息と周囲・専門家への相談が推奨されている。"
+  },
+  {
+    q: "家庭でのガラス飛散対策として有効なのは？",
+    choices: ["窓ガラスに飛散防止フィルムを貼る", "ガラスを常に開けたままにする", "ガラス付近に大きな鏡を追加で置く"],
+    correct: 0,
+    explain: "飛散防止フィルムにより、地震でガラスが割れても破片の飛び散りを大幅に抑えられる。"
+  },
+  {
+    q: "「線状降水帯」とはどのような現象か？",
+    choices: ["発達した雨雲が次々と同じ場所を通過し、帯状に強い雨が降り続く現象", "短時間だけ弱い雨が降る現象", "晴れた日に突然雷だけが鳴る現象"],
+    correct: 0,
+    explain: "線状降水帯は同じ地域に猛烈な雨が長時間降り続き、甚大な水害を引き起こすことがある現象。"
+  },
+  {
+    q: "大規模停電（ブラックアウト）に備えて自宅に用意しておくと良いものは？",
+    choices: ["予備電源（乾電池・モバイルバッテリー等）や手回し充電ラジオ", "停電時にしか使えない家電", "常時コンセントに繋いだままの充電池のみ"],
+    correct: 0,
+    explain: "情報収集と連絡手段を確保するため、予備電源や手回し充電ラジオの準備が有効。"
+  },
+  {
+    q: "「避難場所」と「避難所」の違いとして正しいのは？",
+    choices: ["避難場所は身の安全を一時的に確保する場所、避難所は生活する施設", "どちらも全く同じ意味で使われる", "避難所は屋外の広場のことだけを指す"],
+    correct: 0,
+    explain: "「避難場所」は緊急時に命を守るための一時的な場所、「避難所」は被災後に一定期間生活する施設という違いがある。"
+  },
+  {
+    q: "家族で決めておくと良い「災害時の集合場所」の目的は？",
+    choices: ["離れ離れになっても再会できるようにするため", "集合場所以外には絶対に行かないようにするため", "近所付き合いをよくするため"],
+    correct: 0,
+    explain: "外出先で被災し家族と連絡が取れない場合に備え、事前に集合場所を決めておくと再会しやすくなる。"
+  },
+  {
+    q: "台風の強風による飛来物被害を防ぐため、事前に行っておくべきなのは？",
+    choices: ["ベランダや庭の物を屋内に片付ける", "物干し竿を外に出しておく", "植木鉢を屋根の上に置く"],
+    correct: 0,
+    explain: "強風で飛ばされやすい物を事前に屋内へ移動させることで、飛来物による事故や被害を防げる。"
+  },
+  {
+    q: "定期的な避難訓練に参加する最大の意義は？",
+    choices: ["いざという時に体が自然と安全な行動を取れるようになること", "訓練に参加すること自体が目的化すること", "訓練さえすれば災害が起きないこと"],
+    correct: 0,
+    explain: "繰り返し訓練することで、実際の災害時にもとっさに適切な行動が取りやすくなる。"
+  },
+  {
+    q: "大きな地震の後にしばらく続く「余震」に対する心構えとして正しいのは？",
+    choices: ["本震と同程度の揺れが起こる可能性もあるため引き続き警戒する", "余震は本震より弱いので油断してよい", "一度大きな地震が来たらもう二度と来ない"],
+    correct: 0,
+    explain: "大きな地震の後は本震に匹敵する規模の地震が発生することもあり、しばらくは警戒を続ける必要がある。"
+  }
+];
+
+let questions = [];
+
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+let current = 0;
+let score = 0;
+let answered = false;
+let timeLeft = TIME_LIMIT;
+let timerInterval = null;
+let startTime = 0;
+let results = []; // {correct, points, timeTaken}
+let combo = 0;
+let audioCtx = null;
+
+function getAudioCtx(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e){ audioCtx = null; }
+  }
+  return audioCtx;
+}
+
+function playCorrectChime(comboLevel){
+  const ctx = getAudioCtx();
+  if(!ctx) return;
+  const now = ctx.currentTime;
+  // 連続正解が増えるほど音程が少し上がる、小さな達成感の演出
+  const baseFreqs = [660, 880, 1100];
+  const step = Math.min(comboLevel, baseFreqs.length) - 1;
+  const freqs = [523.25, 659.25, 880 + step*40];
+  freqs.forEach((f, i)=>{
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = f;
+    gain.gain.setValueAtTime(0.0001, now + i*0.08);
+    gain.gain.exponentialRampToValueAtTime(0.18, now + i*0.08 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + i*0.08 + 0.25);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now + i*0.08);
+    osc.stop(now + i*0.08 + 0.3);
+  });
+}
+
+function playWrongBuzz(){
+  const ctx = getAudioCtx();
+  if(!ctx) return;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(180, now);
+  osc.frequency.exponentialRampToValueAtTime(90, now + 0.3);
+  gain.gain.setValueAtTime(0.15, now);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.35);
+}
+
+function startQuiz(){
+  questions = shuffleArray(allQuestions).slice(0, 10);
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('quizScreen').style.display = 'block';
+  buildMeter();
+  loadQuestion();
+}
+
+function buildMeter(){
+  const wrap = document.getElementById('meterWrap');
+  wrap.innerHTML = '';
+  for(let i=0;i<10;i++){
+    const seg = document.createElement('div');
+    seg.className = 'meter-seg';
+    seg.id = 'meter-'+i;
+    wrap.appendChild(seg);
+  }
+}
+
+function updateMeter(){
+  for(let i=0;i<results.length;i++){
+    const seg = document.getElementById('meter-'+i);
+    seg.classList.add(results[i].correct ? 'filled' : 'missed');
+  }
+}
+
+function loadQuestion(){
+  answered = false;
+  timeLeft = TIME_LIMIT;
+  const item = questions[current];
+  document.getElementById('qNum').textContent = current+1;
+  document.getElementById('questionText').textContent = item.q;
+  document.getElementById('liveScore').textContent = score;
+
+  const wrap = document.getElementById('choicesWrap');
+  wrap.innerHTML = '';
+  const labels = ['A','B','C'];
+  item.choices.forEach((c, idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = '<span class="choice-label">'+labels[idx]+'</span><span>'+c+'</span>';
+    btn.onclick = ()=>selectAnswer(idx);
+    wrap.appendChild(btn);
+  });
+
+  document.getElementById('explainBox').classList.remove('show');
+  document.getElementById('explainBox').textContent = '';
+  document.getElementById('nextBtn').classList.remove('show');
+
+  const fill = document.getElementById('timerFill');
+  fill.style.transition = 'none';
+  fill.style.width = '100%';
+  void fill.offsetWidth;
+  fill.style.transition = 'width 0.1s linear';
+
+  startTime = Date.now();
+  clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    timeLeft -= 0.1;
+    const pct = Math.max(0, (timeLeft/TIME_LIMIT)*100);
+    fill.style.width = pct+'%';
+    if(timeLeft <= 0){
+      clearInterval(timerInterval);
+      if(!answered) selectAnswer(-1); // 時間切れ
+    }
+  }, 100);
+}
+
+function selectAnswer(idx){
+  if(answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+
+  const item = questions[current];
+  const timeTaken = Math.min(TIME_LIMIT, (Date.now()-startTime)/1000);
+  const isCorrect = idx === item.correct;
+
+  const buttons = document.querySelectorAll('.choice-btn');
+  buttons.forEach((b, i)=>{
+    b.disabled = true;
+    if(i === item.correct) b.classList.add('correct');
+    else if(i === idx) b.classList.add('wrong');
+  });
+
+  let points = 0;
+  if(isCorrect){
+    combo++;
+    const remainingRatio = Math.max(0, (TIME_LIMIT - timeTaken) / TIME_LIMIT);
+    const bonus = Math.round(remainingRatio * MAX_BONUS);
+    points = BASE_POINTS + bonus;
+    const oldScore = score;
+    score += points;
+    playCorrectEffect(points, combo, oldScore, score);
+  } else {
+    combo = 0;
+    playWrongEffect();
+  }
+
+  results.push({correct:isCorrect, points:points, timeTaken:timeTaken, q:item.q});
+  updateMeter();
+
+  const eb = document.getElementById('explainBox');
+  eb.textContent = item.explain;
+  eb.classList.add('show');
+  document.getElementById('nextBtn').classList.add('show');
+  document.getElementById('nextBtn').textContent = current < questions.length-1 ? '次の問題へ ▶' : '結果を見る ▶';
+}
+
+function playCorrectEffect(points, comboLevel, oldScore, newScore){
+  // 画面フラッシュ
+  const overlay = document.getElementById('flashOverlay');
+  overlay.className = 'flash-overlay correct play';
+  setTimeout(()=>{overlay.className='flash-overlay correct';}, 600);
+
+  // 画面全体のパンチ（軽いシェイク＆ズーム）
+  const appEl = document.querySelector('.app');
+  appEl.classList.remove('punch');
+  void appEl.offsetWidth;
+  appEl.classList.add('punch');
+
+  // 光線バースト
+  const ray = document.getElementById('rayBurst');
+  ray.classList.remove('play');
+  void ray.offsetWidth;
+  ray.classList.add('play');
+
+  // メインのポップ演出（コンボ数が多いほど文字が変化）
+  const pop = document.getElementById('resultPop');
+  pop.className = 'result-pop correct show';
+  const label = comboLevel >= 3 ? '大正解！！' : '正解！';
+  document.getElementById('resultPopText').textContent = label;
+  document.getElementById('resultPopPts').textContent = '+'+points+' pt';
+  setTimeout(()=>{pop.className='result-pop correct';}, 950);
+
+  // コンボ表示（2連続以上で表示）
+  if(comboLevel >= 2){
+    const comboEl = document.getElementById('comboPop');
+    comboEl.className = 'combo-pop';
+    void comboEl.offsetWidth;
+    comboEl.textContent = comboLevel+' コンボ！';
+    comboEl.classList.add('show');
+    setTimeout(()=>{comboEl.className='combo-pop';}, 950);
+  }
+
+  // 効果音
+  playCorrectChime(comboLevel);
+
+  // スコアをカウントアップさせながら表示
+  animateScoreCount(oldScore, newScore);
+
+  // 紙吹雪：上から降る分 + 中心から弾ける分（コンボが多いほど量が増える）
+  spawnConfetti();
+  spawnCenterBurst(comboLevel);
+}
+
+function playWrongEffect(){
+  const overlay = document.getElementById('flashOverlay');
+  overlay.className = 'flash-overlay wrong play';
+  setTimeout(()=>{overlay.className='flash-overlay wrong';}, 600);
+
+  const pop = document.getElementById('resultPop');
+  pop.className = 'result-pop wrong show';
+  document.getElementById('resultPopText').textContent = '不正解…';
+  document.getElementById('resultPopPts').textContent = '+0 pt';
+  setTimeout(()=>{pop.className='result-pop wrong';}, 950);
+
+  playWrongBuzz();
+}
+
+function animateScoreCount(from, to){
+  const el = document.getElementById('liveScore');
+  const duration = 500;
+  const startTs = performance.now();
+  function step(ts){
+    const t = Math.min(1, (ts-startTs)/duration);
+    const eased = 1 - Math.pow(1-t, 3);
+    el.textContent = Math.round(from + (to-from)*eased);
+    if(t < 1){
+      requestAnimationFrame(step);
+    } else {
+      el.textContent = to;
+      el.classList.remove('glow');
+      void el.offsetWidth;
+      el.classList.add('glow');
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function spawnConfetti(){
+  const colors = ['#ffc94d','#ff7a29','#3ddc97','#ff4d5e','#f2f3f8'];
+  const count = 40;
+  for(let i=0;i<count;i++){
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const size = 6 + Math.random()*7;
+    piece.style.width = size+'px';
+    piece.style.height = (size*0.4)+'px';
+    piece.style.left = Math.random()*100+'vw';
+    piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+    const duration = 1.1 + Math.random()*1.0;
+    piece.style.animationDuration = duration+'s';
+    piece.style.animationDelay = (Math.random()*0.2)+'s';
+    document.body.appendChild(piece);
+    setTimeout(()=>piece.remove(), duration*1000+250);
+  }
+}
+
+function spawnCenterBurst(comboLevel){
+  const colors = ['#ffc94d','#ff7a29','#3ddc97','#ff4d5e','#f2f3f8'];
+  const count = Math.min(60, 30 + comboLevel*6);
+  for(let i=0;i<count;i++){
+    const piece = document.createElement('div');
+    piece.className = 'burst-piece';
+    const size = 5 + Math.random()*6;
+    piece.style.width = size+'px';
+    piece.style.height = size+'px';
+    piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+    const angle = Math.random()*Math.PI*2;
+    const dist = 120 + Math.random()*220;
+    const bx = Math.cos(angle)*dist;
+    const by = Math.sin(angle)*dist - 40;
+    piece.style.setProperty('--bx', bx+'px');
+    piece.style.setProperty('--by', by+'px');
+    piece.style.setProperty('--br', (Math.random()*720-360)+'deg');
+    const duration = 0.6 + Math.random()*0.5;
+    piece.style.animationDuration = duration+'s';
+    document.body.appendChild(piece);
+    setTimeout(()=>piece.remove(), duration*1000+50);
+  }
+}
+
+function nextQuestion(){
+  current++;
+  if(current >= questions.length){
+    showFinalResult();
+  } else {
+    loadQuestion();
+  }
+}
+
+function showFinalResult(){
+  document.getElementById('quizScreen').style.display = 'none';
+  document.getElementById('finalScreen').style.display = 'block';
+
+  const correctCount = results.filter(r=>r.correct).length;
+  const speedBonusTotal = results.reduce((sum,r)=> sum + (r.correct ? r.points - BASE_POINTS : 0), 0);
+  const avgTime = (results.reduce((s,r)=>s+r.timeTaken,0)/results.length).toFixed(1);
+
+  document.getElementById('totalScoreText').innerHTML = score + '<span> / 1000点</span>';
+  document.getElementById('correctCount').textContent = correctCount + '/10';
+  document.getElementById('speedBonusTotal').textContent = '+'+speedBonusTotal;
+  document.getElementById('avgTime').textContent = avgTime+'s';
+
+  let rank = 'C', caption = 'まずは基本の見直しから始めよう';
+  if(score >= 900){ rank='S'; caption='防災マスター認定！その知識で周りの人も守れる'; }
+  else if(score >= 700){ rank='A'; caption='かなり頼れる防災知識の持ち主'; }
+  else if(score >= 500){ rank='B'; caption='基礎はバッチリ、さらに知識を深めよう'; }
+  document.getElementById('rankBadge').textContent = rank;
+  document.getElementById('rankCaption').textContent = caption;
+
+  const list = document.getElementById('reviewList');
+  list.innerHTML = '';
+  results.forEach((r, i)=>{
+    const row = document.createElement('div');
+    row.className = 'review-item';
+    row.innerHTML =
+      '<span class="mark '+(r.correct?'ok':'ng')+'">'+(r.correct?'○':'×')+'</span>'+
+      '<span class="qtxt">Q'+(i+1)+'. '+questions[i].q+'</span>'+
+      '<span class="pt">+'+r.points+'</span>';
+    list.appendChild(row);
+  });
+}
+</script>
+
+</body>
+</html>
